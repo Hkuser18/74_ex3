@@ -4,57 +4,98 @@
 
 #ifndef INC_74_EX3_SHIP_H
 #define INC_74_EX3_SHIP_H
-#include <string>
+
+#include "Sim_object.h"
+#include <iostream>
 using namespace std;
 
 enum State {
     Stopped,
     Docked,
-    DITW,//Dead in the water
-    Moving, //moving to destination.
-    Course // moving on course
+    DITW,   // Dead in the water
+    Moving, // moving toward a named port or coordinate destination
+    Course  // moving on a set compass course indefinitely
 };
 
-class Ship {
+/**
+ * Abstract base class for all ship types.
+ * Manages movement, fuel consumption, heading, and combat stat.
+ * Name and location are owned by Sim_object.
+ */
+class Ship : public Sim_object {
+protected:
+    int attackStat; // resistance (freighter/patrol) or attack force (cruiser)
+
 private:
-    string name;
-    double corX;
-    double corY;
-    double speed; // speed in nm (nautical miles) per hour/tick.
-    double heading; // heading in degrees (0-360), where 0 is north, 90 is east, 180 is south, and 270 is west.
-    int fuel;
-    int fuelConsumption; // fuel consumption for distance travelled.
-    int attackStat; //either resistance for freighter/patroller, or power for pirate.
-    const double maxSpeed; // maximum speed for ship.
-    const int maxFuel; // maximum fuel for ship.
-    State state; // current state of the ship, can be Stopped, Docked, DITW (Dead in the water), or Moving.
+    double speed;            // current speed in nm/hr
+    double heading;          // compass heading: 0=N, 90=E, 180=S, 270=W
+    double fuel;             // current fuel in kl
+    int    fuelConsumption;  // fuel burn in kl per nm travelled
+    const double maxSpeed;   // type maximum speed
+    const double maxFuel;    // type tank capacity
+    State  state;            // current navigation state
+
+    // Destination for Moving state
+    double destX;
+    double destY;
+    string destPortName; // name of destination port if Moving to a port; else empty
+
 public:
     Ship();
+    ~Ship() override = default;
 
-    virtual ~Ship();
-    Ship(string name, double corX, double corY, double speed, double heading, int fuel, int fuelConsumption, int attackStat);
-    string getName() const;
-    double getCorX() const;
-    double getCorY() const;
-    double getSpeed() const;
-    double getHeading() const;
-    int getFuel() const;
-    int getFuelConsumption() const;
-    int getAttackStat() const;
-    void setName(const string &name);
+    // Parameterized constructor used by derived classes
+    Ship(const string& name, double corX, double corY,
+         double speed, double heading,
+         double fuel, int fuelConsumption, int attackStat,
+         double maxSpeed, double maxFuel);
+
+    // --- Getters ---
+    double getCorX()            const;
+    double getCorY()            const;
+    double getSpeed()           const;
+    double getHeading()         const;
+    double getFuel()            const;
+    double getMaxFuel()         const;
+    double getMaxSpeed()        const;
+    int    getFuelConsumption() const;
+    int    getAttackStat()      const;
+    State  getState()           const;
+    const string& getDestPortName() const;
+
+    // --- Setters ---
     void setCorX(double corX);
     void setCorY(double corY);
     void setSpeed(double speed);
     void setHeading(double heading);
-    void setFuel(int fuel);
-    void changeState(State newState);
-    void refuel(int amount);
-    void setCourse(double heading, double speed);
-    void setDestination(double corX, double corY, double speed);
-    virtual void setAttackStat(bool victory);
-    void move();
+    void setFuel(double fuel);
 
+    // --- Navigation commands ---
+    void stop();
+    void setCourse(double headingDeg, double spd);
+    // Move toward specific coordinates (no named port)
+    void setDestination(double cx, double cy, double spd);
+    // Move toward a named port's coordinates (stores port name for status display)
+    void setPortDestination(double cx, double cy, double spd, const string& portName);
+    void changeState(State newState);
+
+    // --- Combat ---
+    virtual void setAttackStat(bool victory);
+
+    // --- Sim_object interface ---
+    // Advance one time step: move if not stopped/docked/DITW; consume fuel; go DITW if out of fuel
+    void update() override;
+
+    // Refuel: add amount capped at maxFuel (derived classes can override)
+    virtual void refuel(double amount);
+
+    // Print base status (overridden by each derived class)
+    void printStatus() const override;
+
+protected:
+    // Build the navigation state string for use in derived printStatus()
+    string navString() const;
 };
 
-
 #endif //INC_74_EX3_SHIP_H
+

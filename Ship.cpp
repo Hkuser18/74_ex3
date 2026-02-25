@@ -3,123 +3,190 @@
 //
 
 #include "Ship.h"
+#include <cmath>
+#include <iomanip>
+#include <sstream>
 
-#include <math.h>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
-// Default constructor, empty
-Ship::Ship() : name(""), corX(0), corY(0), speed(0), heading(0), fuel(0), fuelConsumption(0), attackStat(0),
-               maxSpeed(0),
-               maxFuel(0) {
+// Default constructor
+Ship::Ship()
+      : Sim_object("", 0.0, 0.0),
+      attackStat(0), speed(0), heading(0),
+      fuel(0), fuelConsumption(0), maxSpeed(0), maxFuel(0),
+      state(Stopped), destX(0), destY(0) {}
+
+
+// Parameterized constructor used by derived classes
+Ship::Ship(const string& name, double corX, double corY,
+           double speed, double heading,
+           double fuel, int fuelConsumption, int attackStat,
+           double maxSpeed, double maxFuel)
+    : Sim_object(name, corX, corY),
+      attackStat(attackStat), speed(speed), heading(heading),
+      fuel(fuel), fuelConsumption(fuelConsumption),
+      maxSpeed(maxSpeed), maxFuel(maxFuel),
+      state(Stopped), destX(0), destY(0) {}
+
+// --- Getters ---
+double Ship::getCorX()            const { return corX; }
+double Ship::getCorY()            const { return corY; }
+double Ship::getSpeed()           const { return speed; }
+double Ship::getHeading()         const { return heading; }
+double Ship::getFuel()            const { return fuel; }
+double Ship::getMaxFuel()         const { return maxFuel; }
+double Ship::getMaxSpeed()        const { return maxSpeed; }
+int    Ship::getFuelConsumption() const { return fuelConsumption; }
+int    Ship::getAttackStat()      const { return attackStat; }
+State  Ship::getState()           const { return state; }
+const string& Ship::getDestPortName() const { return destPortName; }
+
+// --- Setters ---
+void Ship::setCorX(double v)    { corX = v; }
+void Ship::setCorY(double v)    { corY = v; }
+void Ship::setSpeed(double v)   { speed = v; }
+void Ship::setHeading(double v) { heading = v; }
+void Ship::setFuel(double v)    { fuel = v; }
+
+// Stop: clear destination, zero speed, set Stopped
+void Ship::stop() {
+    destPortName.clear();
+    destX = 0;
+    destY = 0;
+    changeState(Stopped);
 }
 
-// Destructor, empty
-Ship::~Ship() {
-}
-
-// Parameterized constructor, initializes all member variables with the provided values, will be used by derived classes.
-Ship::Ship(string name, double corX, double corY, double speed, double heading, int fuel, int fuelConsumption,
-    int attackStat) : name(name), corX(corX), corY(corY), speed(speed), heading(heading), fuel(fuel),
-                      fuelConsumption(fuelConsumption), attackStat(attackStat), maxSpeed(0), maxFuel(0) {
-}
-
-string Ship::getName() const {
-    return name;
-}
-
-double Ship::getCorX() const {
-    return corX;
-}
-
-double Ship::getCorY() const {
-    return corY;
-}
-
-double Ship::getSpeed() const {
-    return speed;
-}
-
-double Ship::getHeading() const {
-    return heading;
-}
-
-int Ship::getFuel() const {
-        return fuel;
-}
-
-int Ship::getFuelConsumption() const {
-    return fuelConsumption;
-}
-
-int Ship::getAttackStat() const {
-    return attackStat;
-}
-
-void Ship::setName(const string &nameN) {
-    this->name=nameN;
-}
-
-void Ship::setCorX(const double corXN) {
-    this->corX=corXN;
-}
-
-void Ship::setCorY(const double corYN) {
-    this->corY=corYN;
-}
-
-void Ship::setSpeed(double speedN) {
-    this->speed=speedN;
-}
-
-void Ship::setHeading(double headingN) {
-    this->heading=headingN;
-}
-
-void Ship::setFuel(int fuelN) {
-        this->fuel=fuelN;
-}
-
-// Change the state of the ship to the new state. If the new state is Stopped, Docked, or DITW (Dead in the water), the speed is set to 0.
+// Transition state; auto-zero speed for non-moving states
 void Ship::changeState(State newState) {
-    this->state = newState;
+    state = newState;
     if (newState == Stopped || newState == Docked || newState == DITW)
-        this->speed = 0; // If the ship is stopped, docked, or dead in the water, its speed is set to 0.
+        speed = 0;
+}
 
+// Set a compass course and speed (indefinite direction)
+void Ship::setCourse(double headingDeg, double spd) {
+    destPortName.clear();
+    heading = headingDeg;
+    speed   = spd;
+    changeState(Course);
 }
 
 /**
- *
- * @param corX - the X coordinate of the destination.
- * @param corY - the Y coordinate of the destination.
- * @param speed - the speed at which the ship will move towards the destination.
- * This method changes the state of the ship to Moving and sets the speed to the provided value
- * The heading will be calculated in the move method, based on the current coordinates and the destination coordinates, using basic trigonometry:
- * heading = atan2(corY - currentY, corX - currentX) * 180 / M_PI; // Convert heading from radians to degrees
- *
+ * Move toward specific coordinates (no named port).
+ * Heading: 0=North(+Y), 90=East(+X). atan2(dx,dy) gives compass angle.
  */
-void Ship::setDestination(double corX, double corY, double speed) {
+void Ship::setDestination(double cx, double cy, double spd) {
+    destPortName.clear();
+    destX = cx;
+    destY = cy;
+    speed = spd;
+    double dx = cx - corX;
+    double dy = cy - corY;
+    double h  = atan2(dx, dy) * 180.0 / M_PI;
+    if (h < 0) h += 360.0;
+    heading = h;
     changeState(Moving);
-    this->speed = speed;
-
 }
 
-// If victory is true, increase attackStat by 1, otherwise decrease it by 1. virtual to allow freighter to override.
-void Ship::setAttackStat(bool victory) {
-    if (victory)
-        this->attackStat++;
-    else
-        this->attackStat--;
-}
-
-/***
- * Move the ship according to its speed and heading. The new coordinates are calculated using basic trigonometry:
- * newX = oldX + speed * cos(heading in radians)
- * newY = oldY + speed * sin(heading in radians)
- * The fuel is reduced by the fuel consumption for the distance traveled, which is equal to the speed.
+/**
+ * Move toward a named port's coordinates.
+ * Same math as setDestination but stores the port name for status display.
  */
-void Ship::move() {
-    double headingInRadians = heading * M_PI / 180.0; // Convert heading from degrees to radians
-    corX += speed * cos(headingInRadians); // Update X coordinate
-    corY += speed * sin(headingInRadians); // Update Y coordinate
-    if (fuel > 0) // Only reduce fuel if there is fuel left TODO: check rules for negative fuel, differentiate from cruiser.
-        fuel -= static_cast<int>(speed) * fuelConsumption; // Reduce fuel by the fuel consumption for the distance traveled
+void Ship::setPortDestination(double cx, double cy, double spd, const string& portName) {
+    setDestination(cx, cy, spd);
+    destPortName = portName;
+}
+
+// Adjust attackStat ±1
+void Ship::setAttackStat(bool victory) {
+    if (victory) attackStat++;
+    else         attackStat--;
+}
+
+// Refuel: add amount capped at tank capacity
+void Ship::refuel(double amount) {
+    fuel += amount;
+    if (fuel > maxFuel) fuel = maxFuel;
+}
+
+/**
+ * update() — advance one time step (1 hour).
+ * - Stopped / Docked / DITW: no movement.
+ * - No fuel while moving: transition to DITW.
+ * - Moving / Course: advance position, consume fuel.
+ *   Ships only dock when explicitly commanded (dockAt in model/controller).
+ */
+void Ship::update() {
+    if (state == Stopped || state == Docked || state == DITW)
+        return;
+
+    // Out of fuel → dead in the water
+    if (fuelConsumption > 0 && fuel <= 0.0) {
+        cout << getName() << " is out of fuel and is dead in the water.\n";
+        changeState(DITW);
+        return;
+    }
+
+    double rad  = heading * M_PI / 180.0;
+    double step = speed; // distance travelled this step = speed * 1hr
+
+    if (state == Moving) {
+        // Cap step so we don't overshoot the destination
+        double dx   = destX - corX;
+        double dy   = destY - corY;
+        double dist = sqrt(dx * dx + dy * dy);
+        if (dist < step) step = dist;
+        // Recompute heading toward destination each step
+        double h = atan2(dx, dy) * 180.0 / M_PI;
+        if (h < 0) h += 360.0;
+        heading = h;
+        rad = heading * M_PI / 180.0;
+    }
+
+    corX += step * sin(rad);
+    corY += step * cos(rad);
+
+    // Consume fuel proportional to distance travelled
+    if (fuelConsumption > 0) {
+        fuel -= step * fuelConsumption;
+        if (fuel < 0) fuel = 0;
+    }
+}
+
+/**
+ * Build the navigation state string.
+ * When Moving to a named port: "Moving to <portName> on course H deg, speed S nm/hr"
+ * When Moving to coordinates:  "Moving to (<x>, <y>) on course H deg, speed S nm/hr"
+ * When on Course:               "Moving on course H deg, speed S nm/hr"
+ */
+string Ship::navString() const {
+    ostringstream oss;
+    oss << fixed << setprecision(2);
+    switch (state) {
+        case Stopped: return "Stopped";
+        case Docked:  return "Docked";
+        case DITW:    return "Dead in the water";
+        case Course:
+            oss << "Moving on course " << heading
+                << " deg, speed " << speed << " nm/hr";
+            return oss.str();
+        case Moving:
+            if (!destPortName.empty())
+                oss << "Moving to " << destPortName;
+            else
+                oss << "Moving to (" << destX << ", " << destY << ")";
+            oss << " on course " << heading
+                << " deg, speed " << speed << " nm/hr";
+            return oss.str();
+    }
+    return "";
+}
+
+// Base printStatus
+void Ship::printStatus() const {
+    cout << fixed << setprecision(2);
+    cout << getName() << " at (" << corX << ", " << corY << "), "
+         << navString() << "\n";
 }
