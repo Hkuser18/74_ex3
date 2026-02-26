@@ -29,7 +29,7 @@ public:
     Model(const Model&)            = delete;
     Model& operator=(const Model&) = delete;
 
-    // --- Time ---
+    // Time
     int getTime() const;
 
     /**
@@ -40,7 +40,7 @@ public:
      */
     void go();
 
-    // --- Object creation (throws runtime_error if name already exists) ---
+    // Object creation (throws runtime_error if name already exists)
     void addPort(const string& name, double x, double y,
                  double initialFuel, double fuelRate);
 
@@ -53,7 +53,7 @@ public:
     void addCruiser(const string& name, double x, double y,
                     int force, int attackRange);
 
-    // --- Typed lookup (throws runtime_error if not found) ---
+    // Typed lookup (throws runtime_error if not found)
     shared_ptr<Port>      getPort(const string& name)      const;
     shared_ptr<Freighter> getFreighter(const string& name) const;
     shared_ptr<Patrol>    getPatrol(const string& name)    const;
@@ -68,11 +68,11 @@ public:
     // Returns true if a ship (any type) has this name
     bool shipExists(const string& name) const;
 
-    // --- View support ---
+    // View support
     // Flat list of all simulation objects; the View iterates this to render the map
     vector<shared_ptr<Sim_object>> getAllObjects() const;
 
-    // --- Status output ---
+    // Status output
     // Print status of every object: ports first (map order), then ships (insertion order)
     void printStatus() const;
 

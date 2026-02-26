@@ -17,4 +17,9 @@ add_executable(74_ex3 main.cpp
         Port.cpp
         Port.h
         Model.cpp
-        Model.h)
+        Model.h
+        Controller.h
+        Controller.cpp
+        View.h
+        View.cpp
+        View.cpp)

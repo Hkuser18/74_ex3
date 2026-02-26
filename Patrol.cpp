@@ -12,7 +12,6 @@ Patrol::Patrol()
     : Ship() {}
 
 // Destructor
-Patrol::~Patrol() = default;
 
 /**
  * Create a patrol boat with full fuel tank.

@@ -50,7 +50,7 @@ public:
          double fuel, int fuelConsumption, int attackStat,
          double maxSpeed, double maxFuel);
 
-    // --- Getters ---
+    // Getters
     double getCorX()            const;
     double getCorY()            const;
     double getSpeed()           const;
@@ -63,14 +63,14 @@ public:
     State  getState()           const;
     const string& getDestPortName() const;
 
-    // --- Setters ---
+    // Setters
     void setCorX(double corX);
     void setCorY(double corY);
     void setSpeed(double speed);
     void setHeading(double heading);
     void setFuel(double fuel);
 
-    // --- Navigation commands ---
+    // Navigation commands
     void stop();
     void setCourse(double headingDeg, double spd);
     // Move toward specific coordinates (no named port)
@@ -79,10 +79,10 @@ public:
     void setPortDestination(double cx, double cy, double spd, const string& portName);
     void changeState(State newState);
 
-    // --- Combat ---
+    // Combat
     virtual void setAttackStat(bool victory);
 
-    // --- Sim_object interface ---
+    // Sim_object interface
     // Advance one time step: move if not stopped/docked/DITW; consume fuel; go DITW if out of fuel
     void update() override;
 

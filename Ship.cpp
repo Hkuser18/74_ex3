@@ -19,7 +19,7 @@ Ship::Ship()
       state(Stopped), destX(0), destY(0) {}
 
 
-// Parameterized constructor used by derived classes
+// Parameterized constructor used by derived classes - initializes all members
 Ship::Ship(const string& name, double corX, double corY,
            double speed, double heading,
            double fuel, int fuelConsumption, int attackStat,
@@ -30,7 +30,7 @@ Ship::Ship(const string& name, double corX, double corY,
       maxSpeed(maxSpeed), maxFuel(maxFuel),
       state(Stopped), destX(0), destY(0) {}
 
-// --- Getters ---
+//getter, inline
 double Ship::getCorX()            const { return corX; }
 double Ship::getCorY()            const { return corY; }
 double Ship::getSpeed()           const { return speed; }
@@ -43,14 +43,14 @@ int    Ship::getAttackStat()      const { return attackStat; }
 State  Ship::getState()           const { return state; }
 const string& Ship::getDestPortName() const { return destPortName; }
 
-// --- Setters ---
+// setters, inline
 void Ship::setCorX(double v)    { corX = v; }
 void Ship::setCorY(double v)    { corY = v; }
 void Ship::setSpeed(double v)   { speed = v; }
 void Ship::setHeading(double v) { heading = v; }
 void Ship::setFuel(double v)    { fuel = v; }
 
-// Stop: clear destination, zero speed, set Stopped
+// Stop, clear destination, and move to stop state
 void Ship::stop() {
     destPortName.clear();
     destX = 0;
@@ -58,14 +58,14 @@ void Ship::stop() {
     changeState(Stopped);
 }
 
-// Transition state; auto-zero speed for non-moving states
+// change state, zero speed if stopping/docking/DITW
 void Ship::changeState(State newState) {
     state = newState;
     if (newState == Stopped || newState == Docked || newState == DITW)
         speed = 0;
 }
 
-// Set a compass course and speed (indefinite direction)
+// set course: clear destination and move to Course state
 void Ship::setCourse(double headingDeg, double spd) {
     destPortName.clear();
     heading = headingDeg;
@@ -156,7 +156,7 @@ void Ship::update() {
 }
 
 /**
- * Build the navigation state string.
+ * construct a string describing the current navigation state:
  * When Moving to a named port: "Moving to <portName> on course H deg, speed S nm/hr"
  * When Moving to coordinates:  "Moving to (<x>, <y>) on course H deg, speed S nm/hr"
  * When on Course:               "Moving on course H deg, speed S nm/hr"
